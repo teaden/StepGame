@@ -7,60 +7,202 @@
 
 import UIKit
 import CoreMotion
+import DGCharts
 
-class ViewController: UIViewController  {
-    
+class ViewController: UIViewController, UITextFieldDelegate  {
+
     let motionModel = MotionModel()
+    var todaySteps: Int?
+    var yesterdaySteps: Int?
+    private lazy var circularProgressBarView = CircularProgressBarView()
 
     // MARK: =====UI Outlets=====
-    @IBOutlet weak var yesterdayStepLabel: UILabel!
-    @IBOutlet weak var progressBar: UIProgressView!
-    @IBOutlet weak var activityLabel: UILabel!
 
+    @IBOutlet weak var todayStepLabel: UILabel!
+    @IBOutlet weak var goalStepLabel: UILabel!
+    @IBOutlet weak var editGoalButton: UIButton!
+    @IBOutlet weak var stepGoalTextField: UITextField!
+    @IBOutlet weak var saveGoalButton: UIButton!
+    @IBOutlet weak var barChartView: BarChartView!
+    @IBOutlet weak var activityLabel: UILabel!
     
+    // MARK: =====UI Actions=====
+    @IBAction func tapEditGoalButton(_ sender: UIButton) {
+        editGoalButton.isHidden = true
+        stepGoalTextField.isHidden = false
+        saveGoalButton.isHidden = false
+        self.stepGoalTextField.becomeFirstResponder()
+    }
+
+    @IBAction func tapSaveGoalButton(_ sender: UIButton) {
+
+        if let enteredText = stepGoalTextField.text, let newGoal = Int(enteredText) {
+            UserDefaults.standard.set(newGoal, forKey: "stepGoal")
+            goalStepLabel.text = "Goal: \(newGoal)"
+            updateCircularProgressBar()
+            stepGoalTextField.isHidden = true
+            saveGoalButton.isHidden = true
+            editGoalButton.isHidden = false
+        }
+
+        self.stepGoalTextField.resignFirstResponder()
+    }
+
     // MARK: =====UI Lifecycle=====
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-        
+
         self.motionModel.delegate = self
-        
         self.motionModel.startActivityMonitoring()
         self.motionModel.startPedometerMonitoring()
+
+        stepGoalTextField.isHidden = true
+        saveGoalButton.isHidden = true
+
+        var savedGoal = UserDefaults.standard.integer(forKey: "stepGoal")
+        if savedGoal == 0 {
+            savedGoal = 50
+            UserDefaults.standard.set(savedGoal, forKey: "stepGoal")
+        }
+
+        goalStepLabel.text = "Goal: \(savedGoal)"
+
+        configureCircularProgressBarView()
+        configureBarChartView()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
 
-    
+        circularProgressBarView.frame = CGRect(
+            x: view.bounds.midX - 85,
+            y: view.bounds.midY - 260,
+            width: 170,
+            height: 170
+        )
+    }
 
+    func configureCircularProgressBarView() {
+        view.addSubview(circularProgressBarView)
+        circularProgressBarView.setProgress(0.75, animated: true)
+    }
 
-}
+    func configureBarChartView() {
+        barChartView.chartDescription.enabled = false
+        barChartView.legend.enabled = false
 
-extension ViewController: MotionDelegate{
-    // MARK: =====Motion Delegate Methods=====
-    
-    func pedometerUpdated(pedData:CMPedometerData){
+        barChartView.xAxis.labelPosition = .bottom
+        barChartView.xAxis.drawGridLinesEnabled = false
+        barChartView.xAxis.granularity = 1
+        barChartView.xAxis.labelCount = 2
 
-        // display the output directly on the phone
+        // Enable left axis and disable right axis
+        barChartView.leftAxis.enabled = true
+        barChartView.leftAxis.axisMinimum = 0
+        barChartView.leftAxis.drawGridLinesEnabled = false
+
+        barChartView.rightAxis.enabled = false
+    }
+
+    func updateCircularProgressBar() {
+        let goal = UserDefaults.standard.integer(forKey: "stepGoal")
+        guard let todaySteps = self.todaySteps else { return }
+        let progress = min(Float(todaySteps) / Float(goal), 1.0)
+        circularProgressBarView.setProgress(CGFloat(progress), animated: true)
+    }
+
+    func updateBarChart() {
+        guard let todaySteps = self.todaySteps, let yesterdaySteps = self.yesterdaySteps else {
+            return
+        }
+
         DispatchQueue.main.async {
-            // this updates the progress bar with number of steps, assuming 100 is the maximum for the steps
-            
-            self.progressBar.progress = pedData.numberOfSteps.floatValue / 100
+            let entries = [
+                BarChartDataEntry(x: 0, y: Double(yesterdaySteps)),
+                BarChartDataEntry(x: 1, y: Double(todaySteps))
+            ]
+
+            let dataSet = BarChartDataSet(entries: entries, label: "Steps")
+            dataSet.colors = [UIColor.systemBlue]
+            dataSet.valueFont = UIFont.systemFont(ofSize: 14)
+            dataSet.valueFormatter = IntegerValueFormatter()
+
+            let data = BarChartData(dataSet: dataSet)
+
+            // Calculate dates
+            let todayDate = Date()
+            let yesterdayDate = Calendar.current.date(byAdding: .day, value: -1, to: todayDate)!
+
+            // Format dates
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MMM d"
+
+            let todayDateString = dateFormatter.string(from: todayDate)
+            let yesterdayDateString = dateFormatter.string(from: yesterdayDate)
+
+            // Set labels
+            let formatter = BarChartFormatter()
+            formatter.labels = [yesterdayDateString, todayDateString]
+            self.barChartView.xAxis.valueFormatter = formatter
+
+            // Adjust x-axis settings
+            self.barChartView.xAxis.granularity = 1
+            self.barChartView.xAxis.labelCount = entries.count
+
+            // Adjust left axis maximum
+            let maxSteps = max(Double(todaySteps), Double(yesterdaySteps))
+            self.barChartView.leftAxis.axisMaximum = maxSteps * 1.5 // Increase by 50%
+
+            self.barChartView.data = data
         }
     }
-    
+}
+
+extension ViewController: MotionDelegate {
+    // MARK: =====Motion Delegate Methods=====
     func activityUpdated(activity: CMMotionActivity) {
-        self.activityLabel.text = "🚶: \(activity.walking), 🏃: \(activity.running)"
+        
+        var activityLabel = "Activity: "
+        
+        updateActivityLabel(label: &activityLabel, newActivityPresent: activity.walking, emoji: "🚶")
+        updateActivityLabel(label: &activityLabel, newActivityPresent: activity.running, emoji: "🏃")
+        updateActivityLabel(label: &activityLabel, newActivityPresent: activity.stationary, emoji: "📱")
+        updateActivityLabel(label: &activityLabel, newActivityPresent: activity.cycling, emoji: "🚴‍♂️")
+        updateActivityLabel(label: &activityLabel, newActivityPresent: activity.automotive, emoji: "🚗")
+        updateActivityLabel(label: &activityLabel, newActivityPresent: activity.unknown, emoji: "❓")
+        
+        if activityLabel == "Activity: " {
+            activityLabel += "⏺️"
+        }
+        
+        self.activityLabel.text = activityLabel
     }
-    
+
     func pedometerUpdatedToday(steps: Float) {
         DispatchQueue.main.async {
-            self.progressBar.progress = steps / 100
+            let stepsInt = Int(steps)
+            self.todaySteps = stepsInt
+            self.todayStepLabel.text = "Today: \(stepsInt)"
+            self.updateCircularProgressBar()
+            self.updateBarChart()
+        }
+    }
+
+    func pedometerUpdatedYesterday(steps: Float) {
+        DispatchQueue.main.async {
+            let stepsInt = Int(steps)
+            self.yesterdaySteps = stepsInt
+            self.updateBarChart()
         }
     }
     
-    func pedometerUpdatedYesterday(steps: Float) {
-        DispatchQueue.main.async {
-            self.yesterdayStepLabel.text = "Yesterday's Steps: \(steps)"
+    private func updateActivityLabel(label: inout String, newActivityPresent: Bool, emoji: String) {
+        if (newActivityPresent) {
+            if label != "Activity: " {
+                label += ", "
+            }
+            label += emoji
         }
     }
 }
+

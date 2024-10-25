@@ -36,9 +36,6 @@ class MotionModel{
                 // so these updates can come through less often than we may want
                 if let unwrappedActivity = activity,
                    let delegate = self.delegate {
-                    // Print if we are walking or running
-                    print("%@",unwrappedActivity.description)
-                    
                     // Call delegate function
                     delegate.activityUpdated(activity: unwrappedActivity)
                     

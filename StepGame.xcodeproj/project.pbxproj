@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		48AEFA5E2CCB0A7800F45DA3 /* DGCharts in Frameworks */ = {isa = PBXBuildFile; productRef = 48AEFA5D2CCB0A7800F45DA3 /* DGCharts */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		48AEFA3A2CC8613D00F45DA3 /* StepGame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StepGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		48AEFA572CCB08A300F45DA3 /* Charts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Charts.framework; path = System/Library/Frameworks/Charts.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				48AEFA5E2CCB0A7800F45DA3 /* DGCharts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				48AEFA3C2CC8613D00F45DA3 /* StepGame */,
+				48AEFA562CCB08A200F45DA3 /* Frameworks */,
 				48AEFA3B2CC8613D00F45DA3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +63,14 @@
 				48AEFA3A2CC8613D00F45DA3 /* StepGame.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		48AEFA562CCB08A200F45DA3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				48AEFA572CCB08A300F45DA3 /* Charts.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -78,6 +93,7 @@
 			);
 			name = StepGame;
 			packageProductDependencies = (
+				48AEFA5D2CCB0A7800F45DA3 /* DGCharts */,
 			);
 			productName = StepGame;
 			productReference = 48AEFA3A2CC8613D00F45DA3 /* StepGame.app */;
@@ -107,6 +123,9 @@
 			);
 			mainGroup = 48AEFA312CC8613D00F45DA3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				48AEFA5C2CCB0A7800F45DA3 /* XCRemoteSwiftPackageReference "Charts" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 48AEFA3B2CC8613D00F45DA3 /* Products */;
 			projectDirPath = "";
@@ -335,6 +354,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		48AEFA5C2CCB0A7800F45DA3 /* XCRemoteSwiftPackageReference "Charts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/danielgindi/Charts.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		48AEFA5D2CCB0A7800F45DA3 /* DGCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48AEFA5C2CCB0A7800F45DA3 /* XCRemoteSwiftPackageReference "Charts" */;
+			productName = DGCharts;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 48AEFA322CC8613D00F45DA3 /* Project object */;
 }
