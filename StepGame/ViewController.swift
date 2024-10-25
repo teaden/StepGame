@@ -12,9 +12,9 @@ import DGCharts
 class ViewController: UIViewController, UITextFieldDelegate  {
 
     let motionModel = MotionModel()
-    var todaySteps: Int?
-    var yesterdaySteps: Int?
-    var stepGoal: Int?
+    var todaySteps: Int = 0
+    var yesterdaySteps: Int = 0
+    var stepGoal: Int = 0
     private lazy var circularProgressBarView = CircularProgressBarView()
 
     // MARK: =====UI Outlets=====
@@ -90,7 +90,9 @@ class ViewController: UIViewController, UITextFieldDelegate  {
 
     func configureCircularProgressBarView() {
         view.addSubview(circularProgressBarView)
-        circularProgressBarView.setProgress(CGFloat(self.stepGoal!), animated: false)
+        let progress = min(Float(self.todaySteps) / Float(self.stepGoal), 1.0)
+        
+        circularProgressBarView.setProgress(CGFloat(progress), animated: false)
     }
 
     func configureBarChartView() {
@@ -111,10 +113,8 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     }
 
     func updateCircularProgressBar() {
-        let goal = self.stepGoal!
-        guard let todaySteps = self.todaySteps else { return }
-        let progress = min(Float(todaySteps) / Float(goal), 1.0)
-        circularProgressBarView.setProgress(CGFloat(progress), animated: true)
+        let progress = min(Float(self.todaySteps) / Float(self.stepGoal), 1.0)
+        circularProgressBarView.setProgress(CGFloat(progress), animated: false)
         
         if (progress >= 1.0) {
             playGameButton.isHidden = false
@@ -124,9 +124,8 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     }
 
     func updateBarChart() {
-        guard let todaySteps = self.todaySteps, let yesterdaySteps = self.yesterdaySteps else {
-            return
-        }
+        let todaySteps: Int = self.todaySteps
+        let yesterdaySteps: Int = self.yesterdaySteps
 
         DispatchQueue.main.async {
             let entries = [
