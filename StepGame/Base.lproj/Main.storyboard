@@ -70,6 +70,14 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Txa-kA-xof">
+                                <rect key="frame" x="130" y="76" width="136" height="43"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="gray" title="Play Game">
+                                    <fontDescription key="titleFontDescription" type="italicSystem" pointSize="24"/>
+                                </buttonConfiguration>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -79,6 +87,7 @@
                         <outlet property="barChartView" destination="7eL-Bo-pyc" id="fdo-oa-Yrr"/>
                         <outlet property="editGoalButton" destination="yZv-XT-2cq" id="qSx-yy-SBb"/>
                         <outlet property="goalStepLabel" destination="J8H-11-yth" id="cj5-F4-Itt"/>
+                        <outlet property="playGameButton" destination="Txa-kA-xof" id="mUo-V1-pRg"/>
                         <outlet property="saveGoalButton" destination="n8f-jw-eZy" id="W69-YH-dyD"/>
                         <outlet property="stepGoalTextField" destination="JLP-dg-0sK" id="svB-KJ-tDY"/>
                         <outlet property="todayStepLabel" destination="mF0-ZH-pEZ" id="JQO-lb-RIz"/>

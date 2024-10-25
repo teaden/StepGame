@@ -14,10 +14,12 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     let motionModel = MotionModel()
     var todaySteps: Int?
     var yesterdaySteps: Int?
+    var stepGoal: Int?
     private lazy var circularProgressBarView = CircularProgressBarView()
 
     // MARK: =====UI Outlets=====
 
+    @IBOutlet weak var playGameButton: UIButton!
     @IBOutlet weak var todayStepLabel: UILabel!
     @IBOutlet weak var goalStepLabel: UILabel!
     @IBOutlet weak var editGoalButton: UIButton!
@@ -37,6 +39,7 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     @IBAction func tapSaveGoalButton(_ sender: UIButton) {
 
         if let enteredText = stepGoalTextField.text, let newGoal = Int(enteredText) {
+            self.stepGoal = newGoal
             UserDefaults.standard.set(newGoal, forKey: "stepGoal")
             goalStepLabel.text = "Goal: \(newGoal)"
             updateCircularProgressBar()
@@ -44,7 +47,8 @@ class ViewController: UIViewController, UITextFieldDelegate  {
             saveGoalButton.isHidden = true
             editGoalButton.isHidden = false
         }
-
+        
+        self.stepGoalTextField.text = ""
         self.stepGoalTextField.resignFirstResponder()
     }
 
@@ -55,7 +59,8 @@ class ViewController: UIViewController, UITextFieldDelegate  {
         self.motionModel.delegate = self
         self.motionModel.startActivityMonitoring()
         self.motionModel.startPedometerMonitoring()
-
+        
+        playGameButton.isHidden = true
         stepGoalTextField.isHidden = true
         saveGoalButton.isHidden = true
 
@@ -64,7 +69,8 @@ class ViewController: UIViewController, UITextFieldDelegate  {
             savedGoal = 50
             UserDefaults.standard.set(savedGoal, forKey: "stepGoal")
         }
-
+        
+        self.stepGoal = savedGoal
         goalStepLabel.text = "Goal: \(savedGoal)"
 
         configureCircularProgressBarView()
@@ -84,7 +90,7 @@ class ViewController: UIViewController, UITextFieldDelegate  {
 
     func configureCircularProgressBarView() {
         view.addSubview(circularProgressBarView)
-        circularProgressBarView.setProgress(0.75, animated: true)
+        circularProgressBarView.setProgress(CGFloat(self.stepGoal!), animated: false)
     }
 
     func configureBarChartView() {
@@ -105,10 +111,16 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     }
 
     func updateCircularProgressBar() {
-        let goal = UserDefaults.standard.integer(forKey: "stepGoal")
+        let goal = self.stepGoal!
         guard let todaySteps = self.todaySteps else { return }
         let progress = min(Float(todaySteps) / Float(goal), 1.0)
         circularProgressBarView.setProgress(CGFloat(progress), animated: true)
+        
+        if (progress >= 1.0) {
+            playGameButton.isHidden = false
+        } else {
+            playGameButton.isHidden = true
+        }
     }
 
     func updateBarChart() {
