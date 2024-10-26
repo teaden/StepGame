@@ -9,37 +9,69 @@ import UIKit
 import SpriteKit
 
 class GameViewController: UIViewController {
-    
-    var hasPopped = false
+
+    var arrowsAvailable: Int = 0
+    var arrowsUsed: Int = 0
+    var hasPopped: Bool = false
+
+    override func loadView() {
+        // Create an SKView and set it as the view controller's view
+        self.view = SKView(frame: UIScreen.main.bounds)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        //setup game scene
-        let scene = GameScene(size: view.bounds.size)
+        guard let skView = self.view as? SKView else {
+            fatalError("View of GameViewController is not an SKView")
+        }
+
+        let scene = GameScene(size: skView.bounds.size)
         scene.gameSceneDelegate = self
-        let skView = view as! SKView // the view in storyboard must be an SKView
+        scene.arrowsRemaining = self.arrowsAvailable
+
         skView.ignoresSiblingOrder = true
         scene.scaleMode = .resizeFill
         skView.presentScene(scene)
     }
-    
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Set hasPopped to true if the user navigates back manually
-        hasPopped = true
+        if !self.hasPopped {
+            if self.arrowsAvailable != 0 {
+                // User exited early
+                if let parentVC = self.navigationController?.viewControllers.first(where: { $0 is ViewController }) as? ViewController {
+                    parentVC.trackLastGame(remainingArrows: arrowsAvailable, arrowsUsedInGame: arrowsUsed)
+                }
+            } else {
+                // Game ended normally, reset step progress
+                if let parentVC = self.navigationController?.viewControllers.first(where: { $0 is ViewController }) as? ViewController {
+                    parentVC.resetStepProgress(arrowsUsedInGame: self.arrowsUsed)
+                }
+            }
+        }
     }
 }
 
-
 // Conform to the GameSceneDelegate protocol
 extension GameViewController: GameSceneDelegate {
-    // Implement the delegate method
-    func gameDidEnd() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+    
+    func useArrow() {
+        self.arrowsAvailable -= 1
+        self.arrowsUsed += 1
+    }
+
+    func leaveGameView() {
+        // Notify the ViewController to reset step progress
+        if let parentVC = self.navigationController?.viewControllers.first(where: { $0 is ViewController }) as? ViewController {
+            parentVC.resetStepProgress(arrowsUsedInGame: self.arrowsUsed)
+        }
+        // Then pop the GameViewController
+        DispatchQueue.main.async {
             guard !self.hasPopped else { return }
             self.hasPopped = true
             self.navigationController?.popViewController(animated: true)
         }
     }
 }
+

@@ -87,16 +87,23 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Txa-kA-xof">
-                                <rect key="frame" x="130" y="76" width="136" height="43"/>
+                                <rect key="frame" x="53" y="76" width="136" height="43"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="gray" title="Play Game">
                                     <fontDescription key="titleFontDescription" type="italicSystem" pointSize="24"/>
                                 </buttonConfiguration>
                                 <connections>
-                                    <segue destination="Qde-VY-2TF" kind="show" id="inx-bR-fbW"/>
+                                    <action selector="tapPlayGameButton:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Qpg-jC-OL8"/>
                                 </connections>
                             </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Currency: 0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7at-to-7Br">
+                                <rect key="frame" x="200" y="83" width="176" height="29"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="22"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -105,6 +112,7 @@
                     <connections>
                         <outlet property="activityLabel" destination="JfR-18-BwM" id="yiA-Se-vFG"/>
                         <outlet property="barChartView" destination="7eL-Bo-pyc" id="fdo-oa-Yrr"/>
+                        <outlet property="currencyLabel" destination="7at-to-7Br" id="keB-qR-3q9"/>
                         <outlet property="editGoalButton" destination="yZv-XT-2cq" id="qSx-yy-SBb"/>
                         <outlet property="goalStepLabel" destination="J8H-11-yth" id="cj5-F4-Itt"/>
                         <outlet property="playGameButton" destination="Txa-kA-xof" id="mUo-V1-pRg"/>
@@ -116,22 +124,6 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="135.1145038167939" y="3.5211267605633805"/>
-        </scene>
-        <!--Game View Controller-->
-        <scene sceneID="nDy-KI-7fz">
-            <objects>
-                <viewController id="Qde-VY-2TF" customClass="GameViewController" customModule="StepGame" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="fjf-EM-SKo" customClass="SKView">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                        <viewLayoutGuide key="safeArea" id="AEn-jG-tnL"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                    </view>
-                    <navigationItem key="navigationItem" id="uk7-2E-hny"/>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="yfN-vX-DD4" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="1062" y="4"/>
         </scene>
     </scenes>
     <resources>

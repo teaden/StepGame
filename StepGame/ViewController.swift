@@ -15,11 +15,14 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     var todaySteps: Int = 0
     var yesterdaySteps: Int = 0
     var stepGoal: Int = 0
+    var availableArrows: Int = 0
+    var firedArrowsLastGame: Int = 0
     private lazy var circularProgressBarView = CircularProgressBarView()
 
     // MARK: =====UI Outlets=====
 
     @IBOutlet weak var playGameButton: UIButton!
+    @IBOutlet weak var currencyLabel: UILabel!
     @IBOutlet weak var todayStepLabel: UILabel!
     @IBOutlet weak var goalStepLabel: UILabel!
     @IBOutlet weak var editGoalButton: UIButton!
@@ -27,7 +30,7 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     @IBOutlet weak var saveGoalButton: UIButton!
     @IBOutlet weak var barChartView: BarChartView!
     @IBOutlet weak var activityLabel: UILabel!
-    
+
     // MARK: =====UI Actions=====
     @IBAction func tapEditGoalButton(_ sender: UIButton) {
         editGoalButton.isHidden = true
@@ -37,19 +40,42 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     }
 
     @IBAction func tapSaveGoalButton(_ sender: UIButton) {
-
         if let enteredText = stepGoalTextField.text, let newGoal = Int(enteredText) {
             self.stepGoal = newGoal
             UserDefaults.standard.set(newGoal, forKey: "stepGoal")
             goalStepLabel.text = "Goal: \(newGoal)"
+            
+            // Reset early exit and remaining arrows
+            if firedArrowsLastGame > 0 {
+                firedArrowsLastGame = 0
+                // Optionally, show an alert to the user
+                let alert = UIAlertController(title: "Notice", message: "Changing the step goal forfeits unfired arrows from last game.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                self.present(alert, animated: true)
+            }
+            
             updateCircularProgressBar()
             stepGoalTextField.isHidden = true
             saveGoalButton.isHidden = true
             editGoalButton.isHidden = false
         }
-        
+
         self.stepGoalTextField.text = ""
         self.stepGoalTextField.resignFirstResponder()
+    }
+
+    @IBAction func tapPlayGameButton(_ sender: UIButton) {
+        let gameVC = GameViewController()
+        if self.firedArrowsLastGame > 0 {
+            // If early exit, pass the remaining arrows
+            gameVC.arrowsAvailable = self.availableArrows
+            gameVC.arrowsUsed = self.firedArrowsLastGame
+        } else {
+            gameVC.arrowsAvailable = self.availableArrows // Pass the number of arrows
+        }
+        // Reset earlyExit flag
+        self.firedArrowsLastGame = 0
+        self.navigationController?.pushViewController(gameVC, animated: true)
     }
 
     // MARK: =====UI Lifecycle=====
@@ -59,8 +85,9 @@ class ViewController: UIViewController, UITextFieldDelegate  {
         self.motionModel.delegate = self
         self.motionModel.startActivityMonitoring()
         self.motionModel.startPedometerMonitoring()
-        
+
         playGameButton.isHidden = true
+        currencyLabel.isHidden = true
         stepGoalTextField.isHidden = true
         saveGoalButton.isHidden = true
 
@@ -69,9 +96,9 @@ class ViewController: UIViewController, UITextFieldDelegate  {
             savedGoal = 50
             UserDefaults.standard.set(savedGoal, forKey: "stepGoal")
         }
-        
+
         self.stepGoal = savedGoal
-        goalStepLabel.text = "Goal: \(savedGoal)"
+        goalStepLabel.text = "Goal: \(stepGoal)"
 
         configureCircularProgressBarView()
         configureBarChartView()
@@ -90,9 +117,7 @@ class ViewController: UIViewController, UITextFieldDelegate  {
 
     func configureCircularProgressBarView() {
         view.addSubview(circularProgressBarView)
-        let progress = min(Float(self.todaySteps) / Float(self.stepGoal), 1.0)
-        
-        circularProgressBarView.setProgress(CGFloat(progress), animated: false)
+        updateCircularProgressBar()
     }
 
     func configureBarChartView() {
@@ -113,13 +138,23 @@ class ViewController: UIViewController, UITextFieldDelegate  {
     }
 
     func updateCircularProgressBar() {
-        let progress = min(Float(self.todaySteps) / Float(self.stepGoal), 1.0)
-        circularProgressBarView.setProgress(CGFloat(progress), animated: false)
+
+        if self.firedArrowsLastGame == 0 {
+            self.availableArrows = Int(todaySteps) / stepGoal
+        }
+        self.currencyLabel.text = "Currency: \(self.availableArrows)"
         
-        if (progress >= 1.0) {
+        // Update progress towards the next step goal
+        let progress = min(Float(todaySteps) / Float(stepGoal), 1.0)
+        circularProgressBarView.setProgress(CGFloat(progress), animated: false)
+
+        // Update the play game button visibility
+        if self.availableArrows > 0 {
             playGameButton.isHidden = false
+            currencyLabel.isHidden = false
         } else {
             playGameButton.isHidden = true
+            currencyLabel.isHidden = true
         }
     }
 
@@ -167,25 +202,47 @@ class ViewController: UIViewController, UITextFieldDelegate  {
             self.barChartView.data = data
         }
     }
+    
+    func trackLastGame(remainingArrows: Int, arrowsUsedInGame: Int) {
+        self.availableArrows = remainingArrows
+        self.firedArrowsLastGame = arrowsUsedInGame
+        DispatchQueue.main.async {
+            self.updateCircularProgressBar()
+        }
+    }
+
+    func resetStepProgress(arrowsUsedInGame: Int) {
+        // Update the step goal based on arrows used in game
+        self.stepGoal = self.stepGoal * (arrowsUsedInGame + 1)
+        UserDefaults.standard.set(self.stepGoal, forKey: "stepGoal")
+        goalStepLabel.text = "Goal: \(self.stepGoal)"
+        
+        // Reset early exit and remaining arrows
+        self.firedArrowsLastGame = 0
+
+        DispatchQueue.main.async {
+            self.updateCircularProgressBar()
+        }
+    }
 }
 
 extension ViewController: MotionDelegate {
     // MARK: =====Motion Delegate Methods=====
     func activityUpdated(activity: CMMotionActivity) {
-        
+
         var activityLabel = "Activity: "
-        
+
         updateActivityLabel(label: &activityLabel, newActivityPresent: activity.walking, emoji: "🚶")
         updateActivityLabel(label: &activityLabel, newActivityPresent: activity.running, emoji: "🏃")
         updateActivityLabel(label: &activityLabel, newActivityPresent: activity.stationary, emoji: "📱")
         updateActivityLabel(label: &activityLabel, newActivityPresent: activity.cycling, emoji: "🚴‍♂️")
         updateActivityLabel(label: &activityLabel, newActivityPresent: activity.automotive, emoji: "🚗")
         updateActivityLabel(label: &activityLabel, newActivityPresent: activity.unknown, emoji: "❓")
-        
+
         if activityLabel == "Activity: " {
             activityLabel += "⏺️"
         }
-        
+
         self.activityLabel.text = activityLabel
     }
 
@@ -206,7 +263,7 @@ extension ViewController: MotionDelegate {
             self.updateBarChart()
         }
     }
-    
+
     private func updateActivityLabel(label: inout String, newActivityPresent: Bool, emoji: String) {
         if (newActivityPresent) {
             if label != "Activity: " {
