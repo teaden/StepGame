@@ -1,15 +1,26 @@
+//
+//  GameScene.swift
+//  StepGame
+//
+//  Created by Tyler Eaden on 10/24/24.
+//
+
 import UIKit
 import SpriteKit
 import CoreMotion
 
+// Delegate for GameViewController that holds SpriteKit GameScene
+// Can update GameViewController state (i.e., arrow count) based on arrows fired in game
+// Can indicate from in game when to move from GameViewController to ViewController (i.e., step data view)
 protocol GameSceneDelegate: AnyObject {
     func useArrow()
     func leaveGameView()
 }
 
+// Holds all elements necessary to run SpriteKit bow, arrow, and target game
 class GameScene: SKScene, SKPhysicsContactDelegate {
 
-    // Motion manager to access device's motion data
+    // Motion manager to access device's gravity readings
     let motionManager = CMMotionManager()
     weak var gameSceneDelegate: GameSceneDelegate?
 
@@ -24,23 +35,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var tapLabel: SKLabelNode!
     var rotateLabel: SKLabelNode!
     var arrowsLabel: SKLabelNode!
-
-    // Remaining arrows to shoot before game over
-    var arrowsRemaining: Int = 0
-    var initialArrowsCount: Int = 0 // Added to keep track of initial arrows
+    
+    var arrowsRemaining: Int = 0    // Remaining arrows to shoot before game over
 
     // Flags
-    var isArrowFired = false
-    var gameOver = false
+    var isArrowFired = false    // Prevents uncontrolled arrow firing
+    var gameOver = false        // Indicates when to reset game and drop collision rules
 
     // Physics categories for collision detection
     struct PhysicsCategory {
         static let none: UInt32 = 0
-        static let arrow: UInt32 = 0b1      // 1
-        static let target: UInt32 = 0b10    // 2
-        static let ground: UInt32 = 0b100   // 4
+        static let arrow: UInt32 = 0b1
+        static let target: UInt32 = 0b10
+        static let ground: UInt32 = 0b100
     }
-
+    
+    // Equivalent to viewDidLoad that sets up initial game environment state
     override func didMove(to view: SKView) {
         self.physicsWorld.contactDelegate = self
 
@@ -56,20 +66,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Set up the target
         setupTarget()
 
-        // Set up arrows remaining label
+        // Shows label with remaining arrows left to fire before game over
         arrowsLabel = SKLabelNode(text: "Arrows: \(arrowsRemaining)")
         arrowsLabel.fontColor = .black
         arrowsLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 280)
         addChild(arrowsLabel)
 
-        // Add 'Tap To Fire' message
+        // Adds instructional 'Tap To Fire' message
         tapLabel = SKLabelNode(text: "Tap To Fire")
         tapLabel.fontName = "HelveticaNeue-UltraLight"
         tapLabel.fontSize = 24
         tapLabel.fontColor = .black
         tapLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 250)
         addChild(tapLabel)
-
+        
+        // Adds instructional 'Rotate To Adjust Gravity' message
         rotateLabel = SKLabelNode(text: "Rotate To Adjust Gravity")
         rotateLabel.fontName = "HelveticaNeue-UltraLight"
         rotateLabel.fontSize = 24
@@ -77,13 +88,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         rotateLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 210)
         addChild(rotateLabel)
 
-        // Record the initial number of arrows
-        initialArrowsCount = arrowsRemaining
-
         // Start receiving motion updates
         startMotionUpdates()
     }
-
+    
+    // Builds blocks of green ground that arrows could hit on target misses (i.e., a lose condition)
     func setupGround() {
         ground = SKSpriteNode(color: SKColor.green, size: CGSize(width: size.width, height: 50))
         ground.position = CGPoint(x: size.width / 2, y: ground.size.height / 2)
@@ -98,18 +107,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(ground)
     }
-
+    
+    // Initializes the bow sprite
     func setupBow() {
-        // Initialize the bow sprite
         bow = SKSpriteNode(imageNamed: "bow")
         bow.position = CGPoint(x: bow.size.width / 2 + 40, y: ground.size.height + bow.size.height / 2)
         bow.zPosition = 1
         bow.zRotation = CGFloat.pi / 4 // +45 degrees
         addChild(bow)
     }
-
+    
+    // Initialize the target sprite
     func setupTarget() {
-        // Initialize the target sprite
         target = SKSpriteNode(imageNamed: "target")
         target.position = CGPoint(x: size.width - target.size.width / 2 - 20, y: ground.size.height + target.size.height / 2)
         target.zPosition = 1
@@ -125,28 +134,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         mobilizeTarget()
     }
 
-    // Create up and down movement
+    // Create continuous up and down movement for target to make target hard to hit
     func mobilizeTarget() {
-        // Remove existing movement action if any
-        target.removeAction(forKey: "moveAction")
-        
-        // Create up and down movement
         let moveUp = SKAction.moveBy(x: 0, y: 400, duration: 0.75)
         let moveDown = SKAction.moveBy(x: 0, y: -400, duration: 0.75)
         let sequence = SKAction.sequence([moveUp, moveDown])
         let repeatAction = SKAction.repeatForever(sequence)
         target.run(repeatAction, withKey: "moveAction")
     }
-
+    
+    // Fire arrow when finger is lifted from screen (i.e., after tap)
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard touches.first != nil else { return }
-
-        if isArrowFired { return } // Remove gameOver check to allow immediate firing
-
+        
+        // Do not allow uncontrolled secondary firings after an initial firing
+        if isArrowFired { return }
         isArrowFired = true
         fireArrow()
     }
-
+    
+    // Creates and assigns physics to arrow that is fired from bow
     func fireArrow() {
         // Remove 'Tap To Fire', 'Rotate To Adjust Gravity', 'Arrows: Num' labels
         tapLabel.removeFromParent()
@@ -177,7 +184,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let dy = sin(bow.zRotation)
         let vector = CGVector(dx: dx * 6, dy: dy * 6)
 
-        // Apply impulse to the arrow
+        // Apply impulse to the arrow to account for changes in momentum
         arrow!.physicsBody?.applyImpulse(vector)
         
         // Decrease arrows remaining
@@ -185,7 +192,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         gameSceneDelegate?.useArrow()
         arrowsLabel.text = "Arrows: \(arrowsRemaining)"
     }
-
+    
+    // Includes functinoality for handling collisions between physics bodies
     func didBegin(_ contact: SKPhysicsContact) {
         if gameOver { return } // Ignore collisions after game over
 
@@ -201,17 +209,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             secondBody = contact.bodyA
         }
 
-        // Arrow and Target Collision
+        // Arrow and Target Collision - Win Condition
         if firstBody.categoryBitMask == PhysicsCategory.arrow && secondBody.categoryBitMask == PhysicsCategory.target {
             arrowDidHitTarget()
         }
 
-        // Arrow and Ground Collision
+        // Arrow and Ground Collision - Lose Condition
         else if firstBody.categoryBitMask == PhysicsCategory.arrow && secondBody.categoryBitMask == PhysicsCategory.ground {
             arrowDidNotHitTarget()
         }
     }
-
+    
+    // Lodges arrow in target upon successful hit
+    // Either resets the game or exits the game depending on remaining arrows
     func arrowDidHitTarget() {
         if gameOver { return }
         gameOver = true
@@ -219,16 +229,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Stop the arrow and target
         arrow?.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
         arrow?.physicsBody = nil // Remove physics body
-        target.removeAction(forKey: "moveAction")
+        target.removeAction(forKey: "moveAction") // Stops target up/down motion upon successful hit
         
+        // Exit game (i.e., to step data ViewController) if no remaining arrows
         if arrowsRemaining <= 0 {
             gameOver = true
             showStatusLabel(text: "You Won! Exiting Game...")
             run(SKAction.wait(forDuration: 2)) {
                 self.exitGame()
             }
+        // Reset the game after a delay if arrows remain
         } else {
-            // Reset the game after a delay
             showStatusLabel(text: "You Won! Restarting Game...")
             run(SKAction.wait(forDuration: 2)) {
                 self.arrow?.removeFromParent() // Remove arrow
@@ -238,23 +249,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
-
+    
+    // Removes arrow from game world upon target miss
+    // Either resets the game or exits the game depending on remaining arrows
     func arrowDidNotHitTarget() {
         if gameOver { return }
 
         // Stop the arrow and target
         arrow?.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
         arrow?.physicsBody = nil // Remove physics body
-
+        
+        // Exit game (i.e., to step data ViewController) if no remaining arrows
         if arrowsRemaining <= 0 {
-            // No arrows left, game over
             gameOver = true
             showStatusLabel(text: "You Lose! Exiting Game...")
             run(SKAction.wait(forDuration: 2)) {
                 self.exitGame()
             }
+        // Reset the game after a delay if arrows remain
         } else {
-            // Reset the game after a delay
             showStatusLabel(text: "You Lose! Restarting Game...")
             run(SKAction.wait(forDuration: 2)) {
                 self.arrow?.removeFromParent() // Remove arrow
@@ -266,35 +279,36 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func resetGame(isHit: Bool) {
-        // Remove arrow and labels
-        arrow?.removeFromParent()
+        // Remove win or loss label upon game reset
         self.childNode(withName: "statusLabelNode")?.removeFromParent()
 
-        // Re-add 'Tap To Fire' and 'Rotate To Adjust Gravity' labels
+        // Re-add 'Tap To Fire', 'Rotate To Adjust Gravity', and remaining arrows labels
         addChild(tapLabel)
         addChild(rotateLabel)
         addChild(arrowsLabel)
 
-        // Reset variables
+        // Reset flag variables
         isArrowFired = false
         gameOver = false
         
+        // Restart target position and movement if successful hit
+        // Necessary because target motion is stopped upon successful hit in arrowDidHitTarget()
         if (isHit) {
-            // Restart target position and movement
             target.position = CGPoint(x: size.width - target.size.width / 2 - 20,
                                       y: ground.size.height + target.size.height / 2)
             target.zPosition = 1
             mobilizeTarget()
         }
     }
-
+    
+    // Stops motion (e.g., gravity updates) and returns to step data ViewController
     func exitGame() {
         motionManager.stopDeviceMotionUpdates()
         gameSceneDelegate?.leaveGameView()
     }
-
+    
+    // Adds a status label node with specified text to game environment
     func showStatusLabel(text: String) {
-        // Show lose message
         let label = SKLabelNode(text: text)
         label.name = "statusLabelNode"
         label.fontColor = .black
@@ -302,7 +316,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         label.zPosition = 2
         addChild(label)
     }
-
+    
+    // Begins motion (e.g., gravity reading) updates
     func startMotionUpdates() {
         if motionManager.isDeviceMotionAvailable && !motionManager.isDeviceMotionActive {
             motionManager.deviceMotionUpdateInterval = 0.01
@@ -312,18 +327,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
-
+    
+    // Updates game world gravity based on gravity readings on phone's X and Y axes
+    // Y-axis gravity reading updates most important for this game (i.e., vertical force on fired arrow)
     func updateGravity(_ motion: CMDeviceMotion) {
         let gravity = motion.gravity
-
-        // Scale the gravity to match Earth's gravity
         let gravityScale = 9.8
         let dx = gravity.x * gravityScale
         let dy = gravity.y * gravityScale
 
         self.physicsWorld.gravity = CGVector(dx: CGFloat(dx), dy: CGFloat(dy))
     }
-
+    
+    // Primarily for handling effects on traveling arrow fired from bow for this game
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
 

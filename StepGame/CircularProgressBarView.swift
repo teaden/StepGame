@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 
+// Displays 0 - 100% progress as circular view instead of standard horizontal bar
 // Code Source Citation: https://ruslandzhafarov.medium.com/circular-progress-bar-with-uikit-on-ios-5ced613850ef
 final class CircularProgressBarView: UIView {
 

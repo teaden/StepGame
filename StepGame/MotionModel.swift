@@ -9,14 +9,14 @@ import Foundation
 
 import CoreMotion
 
-// setup a protocol for the ViewController to be delegate for
+// Protocol that allows delegate ViewController to receive motion data updates
 protocol MotionDelegate {
-    // Define delegate functions
-    func activityUpdated(activity: CMMotionActivity)
-    func pedometerUpdatedToday(steps: Float)
-    func pedometerUpdatedYesterday(steps: Float)
+    func activityUpdated(activity: CMMotionActivity)    // E.g., walking, running, stationary
+    func pedometerUpdatedToday(steps: Float)            // Today's real-time step updates
+    func pedometerUpdatedYesterday(steps: Float)        // Yesterday's steps
 }
 
+// MVC model (app state) and related functions for motion activities (e.g., running) and number of steps
 class MotionModel{
     
     // MARK: =====Class Variables=====
@@ -25,15 +25,16 @@ class MotionModel{
     var delegate: MotionDelegate? = nil
     
     // MARK: =====Motion Methods=====
-    func startActivityMonitoring(){
-        // is activity is available
-        if CMMotionActivityManager.isActivityAvailable(){
-            // update from this queue (should we use the MAIN queue here??.... )
+    // Begin tracking iPhone motion activity updates (e.g., walking, running)
+    func startActivityMonitoring() {
+        // Is activity is available
+        if CMMotionActivityManager.isActivityAvailable() {
+            // Update from this queue (should we use the MAIN queue here??.... )
             self.activityManager.startActivityUpdates(to: OperationQueue.main)
             {(activity: CMMotionActivity?) -> Void in
-                // unwrap the activity and send to delegate
-                // using the real time pedometer might influences how often we get activity updates...
-                // so these updates can come through less often than we may want
+                // Unwrap the activity and send to delegate
+                // Using the real time pedometer might influences how often we get activity updates...
+                // So these updates can come through less often than we may want
                 if let unwrappedActivity = activity,
                    let delegate = self.delegate {
                     // Call delegate function
@@ -45,6 +46,7 @@ class MotionModel{
         
     }
     
+    // Begin tracking step updates from iPhone pedometer
     func startPedometerMonitoring() {
         // Ensure pedometer is available
         if CMPedometer.isStepCountingAvailable() {
